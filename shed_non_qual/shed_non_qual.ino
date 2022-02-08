@@ -9,7 +9,7 @@ const int heater = 39; //SS relay for IR Heater.
 
 
 /**********************************************************************************************
-*  Loop Times 
+   INT Loop Times
 ***********************************************************************************************/
 
 const unsigned long SECONDS = 1000;
@@ -21,19 +21,19 @@ unsigned long win_previousMillis = 0;
 unsigned long heater_previousMillis = 0;
 unsigned long print_previousMillis = 0;//this is for serial print
 
-
-long win_time = 15000;
+long win_time = 60 * MIN;
 long compfan_time = 30 * SECONDS;
-long heater_time = 1*MIN; //60 * MIN;
+long heater_time = 1 * MIN; //60 * MIN;
 long fan_time = 5 * MIN;
-long print_time = 5*SECONDS;
+long print_time = 5 * SECONDS;
 
 /**********************************************************************************************/
-/*Adafruit Data Shield
+/*INT Adafruit Data Shield
  *********************************************************************************************
    SD card attached to SPI bus as follows:
  ** Mega:  MOSI - pin 51, MISO - pin 50, CLK - pin 52, CS - pin 4 (CS pin can be changed)
   and pin #52 (SS) must be an output*/
+const int chipSelect = 10; // this is the CS for the data logger
 #include <SPI.h>
 #include <Wire.h> //This is the library that helps the Arduino with i2c
 #include "SD.h" // This is the library for talking to the card
@@ -51,13 +51,13 @@ void error(char *str)// the error function is uded if there is something bad hap
 }
 
 /*********************************************************************************************
-   Time Stamp
+   INT Time Stamp
  * ******************************************************************************************/
 #include "RTClib.h" //this is the library the Arduino uses to chat with the real time clock
 RTC_PCF8523 rtc; // I found a different variable (RTC_DS1307) If the time is incorrect than i want to try this
 
 /***************************************************************************************************
-  TSL2591 Digital Light Sensor (this is for shutting off the light inside the dog kennel)
+ INT TSL2591 Digital Light Sensor
 ***************************************************************************************************/
 
 #include <Adafruit_Sensor.h>
@@ -66,7 +66,7 @@ Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the senso
 unsigned long ir;
 
 /******************************************************************************************
-   Temp, Humid, Baro BMP280 (outside sensor)
+  INT Temp, Humid, Baro BMP280 (outside sensor)
  *******************************************************************************************/
 const int BME_SCK = 13;// this is the ____ for the BMP280 (temp, hum, baro) sensor
 const int BME_MISO = 12;// this is the ____ for the BMP280 (temp, hum, baro) sensor
@@ -78,7 +78,7 @@ const int BME_CS = 9; // Chip select for the BMP280 (temp, hum, baro) sensor
 Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
 
 /*********************************************************************************************
-   Temp Sensor DS18B20
+  INT Temp Sensor DS18B20
  *********************************************************************************************/
 const int ONE_WIRE_BUS = 2; // Pin for DS18B20 sensors (shed, outside, cricket, jango)
 #include <OneWire.h>
@@ -92,7 +92,7 @@ DeviceAddress jango_temp = {0x28, 0x7E, 0xE2, 0x95, 0xF0, 0x01, 0x3C, 0xF8};// t
 DeviceAddress relay_temp = { 0x28, 0x21, 0xB3, 0x95, 0xF0, 0x01, 0x3C, 0xAA };// Need to get the info for this sensor.
 
 /************************************************************************************************
-   DHT11 temp and humidity sensor
+  INT DHT11 temp and humidity sensor
  ***********************************************************************************************/
 #include "DHT.h"
 #define DHTTYPE DHT11 //type of sensor (may get DHT22 in future)
@@ -102,14 +102,18 @@ DHT dht1(sensor1, DHTTYPE);
 DHT dht2(sensor2, DHTTYPE);
 
 /********************************************************************************************************
-* Window Motor
+  INT Window Motor
 *********************************************************************************************************/
 #define dirPin 26 //Direction of the window motor CW or CCW
 #define stepPin 28 //Signal for window motor Microstep Driver
 #define win_relay 36 //12V relay to window motor Microstepper
-#define op_switch 25 //open indicator switch for window
-#define cl_switch 29 //close indicator switch for window
-#define stepsPerRevolution 1600*2 //number of window motor revolutions
+#define op_switch 29 //open indicator switch for window
+#define cl_switch 25 //close indicator switch for window
+int window_var; //Variable based on temperature for window
+int op_lastButtonState;   //Open Switch Debounce
+int cl_lastButtonState;   //Close Switch Debounce
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time
 
 
 /*********************************************************************************************************************
@@ -126,19 +130,18 @@ void setup()
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
   pinMode(comp_fans, OUTPUT);
-  pinMode(motor, OUTPUT);
   pinMode(heater, OUTPUT);
-  
-    pinMode(stepPin, OUTPUT);
+
+  pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   pinMode(win_relay, OUTPUT);
   pinMode(op_switch, INPUT);
   pinMode(cl_switch, INPUT);
 
-  
-    /**************************************************************************************************
-     Data Logger Shield Setup
-   *************************************************************************************************/
+
+  /**************************************************************************************************
+   SETUP Data Logger Shield Setup
+  *************************************************************************************************/
   Serial.print("Initializing SD card...");
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
@@ -168,145 +171,169 @@ void setup()
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
-}
- delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
+
+delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
 }
 
 void loop() {
   unsigned long currentMillis = millis();
-  
+
   float hum1 = dht1.readHumidity();
   float tempF1 = dht1.readTemperature(true);// this is the sensor on the bread board
-  
+
   float cricket_var = sensors.getTempF(cricket_temp);
   float jango_var = sensors.getTempF(jango_temp);
   float shed_var = sensors.getTempF(shed_temp);
   float relay_var = sensors.getTempF(relay_temp);
   float outside_var = sensors.getTempC(outside_temp);
-  
-    int  close_value = digitalRead(cl_switch);
-  int open_value = digitalRead(op_switch);
-  
+
   float dk_avg = (cricket_var + jango_var) / 2;
   float shed_avg = (outside_var + shed_var) / 2;
   float outside_avg = (outside_var);
 
-/*
- * All of the fans can be checked at the same interval. 
- */
-if (currentMillis - fan_previousMillis >= fan_time)) {
-if (outside_avg > 21){
-    if (dk_avg > 60) {
-      digitalWrite(dk_fans, HIGH);
-      Serial.println("   FAN IS ON");
+  /****************************************************************************************************
+     Fans Loop and Temperature Variables
+   ****************************************************************************************************/
+  if ((currentMillis - fan_previousMillis >= fan_time)) {
+    if (outside_avg > 21) {
+      if (dk_avg > 60) {
+        digitalWrite(dk_fans, HIGH);
+        window_var = 2;
+        Serial.println("   FAN IS ON");
+      }
     }
-}
     else if (dk_avg <= 60) {
       digitalWrite(dk_fans, LOW);
+      window_var = 1;
       Serial.println("   FAN IS OFF");
     }
-  else if (outside_avg < 61) {
-    if (dk_avg >= 65) {
-      digitalWrite(dk_fans, HIGH);
-      Serial.println("  FAN IS ON");
+    else if (outside_avg <= 21) {
+      if (dk_avg >= 65) {
+        digitalWrite(dk_fans, HIGH);
+        window_var = 1;
+        Serial.println("  FAN IS ON");
+      }
+      else if (dk_avg < 65) {
+        digitalWrite(dk_fans, LOW);
+        window_var = 2;
+        Serial.println("  FAN IS OFF");
+      }
     }
-    else if (dk_avg < 65) {
-      digitalWrite(dk_fans, LOW);
-      Serial.println("  FAN IS OFF");
+    if (shed_avg >= 70) {
+      digitalWrite (shed_fan, HIGH);
     }
+    else {
+      digitalWrite (shed_fan, LOW);
+    }
+    fan_previousMillis = currentMillis;
   }
-  if (shed_avg >= 70) {
-    digitalWrite (shed_fan, HIGH);
-  }
-  else {
-    digitalWrite (shed_fan, LOW);
-  }
-  fan_previousMillis = currentMillis;
-}
 
-/*
- * The computer fan needs to be checked more frequently due to continuous temperature change
- */
+  /*******************************************************************************************************
+     Computer Fan Loop
+   *******************************************************************************************************/
   if ((tempF1 >= 65) && (currentMillis - comp_previousMillis <= compfan_time)) {
     digitalWrite (comp_fans, LOW); //The relay requires a low input to trigger the relay
-comp_previousMillis = currentMillis;
+    comp_previousMillis = currentMillis;
   }
   else {
     digitalWrite (comp_fans, HIGH);
-comp_previousMillis = currentMillis;
+    comp_previousMillis = currentMillis;
   }
 
-/* 
- *  This is the loop for the IR Heater, which is only going to run the first hour of REALLY cold days. 
- */
-  if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis <= (heater_time)) 
+  /*
+      This is the loop for the IR Heater, which is only going to run the first hour of REALLY cold days.
+  */
+  if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis <= (heater_time)))
   {
-  digitalWrite(heater, HIGH);
-  digitalWrite(dk_fans, HIGH);
-  //Serial.println("Heater");
-  //heater_previousMillis = currentMillis;
-  //i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. 
+    digitalWrite(heater, HIGH);
+    digitalWrite(dk_fans, HIGH);
+    //Serial.println("Heater");
+    //heater_previousMillis = currentMillis;
+    //i do not need a previous millis becuase i want this to just run the first hour when the system is turned on.
   }
-  else{
+  else {
     digitalWrite(heater, LOW);
     digitalWrite(dk_fans, LOW);
   }
-   
-   /******************************************************************************************
-   * Loop for Window Motor
-   *******************************************************************************************/
-   //NEED TO FIGURE OUT THE TEMPERATURES
-     if ((temp### > ##) && (temp### > ##) && (currentMillis - win_previousMillis >= win_time)) {
-    digitalWrite(win_relay, LOW);
-    delay(100);//this is to give the relay time to turn on/off.
-    if ((close_value == HIGH) && (open_value == LOW)) {
-      digitalWrite(dirPin, HIGH);// this is setting the direction
-      for (int i = 0; i < stepsPerRevolution; i++) {
-        digitalWrite(stepPin, HIGH);
-        delayMicroseconds(1000);
-        digitalWrite(stepPin, LOW);
-        delayMicroseconds(1000);
-      }
-      win_previousMillis = currentMillis;
-      delay(100);
-      digitalWrite(win_relay, HIGH);
-    }
 
-    else if ((close_value == LOW) && (open_value == HIGH)) {
-      digitalWrite(dirPin, LOW);
-      delay(100);
-      for (int i = 0; i < stepsPerRevolution; i++) {
+  /******************************************************************************************
+    Loop for Window Motor
+  *******************************************************************************************/
+  //NEED TO FIGURE OUT THE TEMPERATURES
+  int  close_value = digitalRead(cl_switch);
+  int open_value = digitalRead(op_switch);
+  delay(100);
+
+  /*************************************
+     Window going from CLOSE to OPEN
+  **************************************/
+  if ((window_var == 1) && (currentMillis - win_previousMillis >= win_time)) {
+    op_lastButtonState = LOW;
+    if ( open_value != op_lastButtonState) {
+      lastDebounceTime = currentMillis;
+    }
+    if ((open_value == LOW) && (close_value == HIGH) && ((currentMillis - lastDebounceTime) > debounceDelay)) {
+      digitalWrite(win_relay, LOW);
+      digitalWrite(dirPin, HIGH);// this is setting the direction
+      delay(100);//this is to give the relay time to turn on/off.
+
+      while (open_value == LOW) {
         digitalWrite(stepPin, HIGH);
-        delayMicroseconds(1000);
+        delayMicroseconds(500);
         digitalWrite(stepPin, LOW);
-        delayMicroseconds(1000);
+        delayMicroseconds(500);
+        open_value = digitalRead(op_switch);
       }
       win_previousMillis = currentMillis;
       delay(100);
       digitalWrite(win_relay, HIGH);
-      Serial.println("   else");
+      window_var = 0;
     }
   }
 
+  /************************************
+     Window going from OPEN to CLOSE
+  *************************************/
+  if ((window_var == 2) && (currentMillis - win_previousMillis >= win_time)) {
+    cl_lastButtonState = LOW;
+    if ( close_value != cl_lastButtonState) {
+      lastDebounceTime = currentMillis;
+    }
+    if ((open_value == HIGH) && (close_value == LOW) && ((currentMillis - lastDebounceTime) > debounceDelay)) {
+      digitalWrite(win_relay, LOW);
+      digitalWrite(dirPin, LOW);// this is setting the direction
+      delay(100);//this is to give the relay time to turn on/off.
+
+      while (close_value == LOW) {
+        digitalWrite(stepPin, HIGH);
+        delayMicroseconds(500);
+        digitalWrite(stepPin, LOW);
+        delayMicroseconds(500);
+        close_value = digitalRead(cl_switch);
+      }
+      win_previousMillis = currentMillis;
+      delay(100);
+      digitalWrite(win_relay, HIGH);
+      window_var = 0;
+    }
+  }
   /***********************************************************************************************************
     Serial Print
   ***********************************************************************************************************/
- if (currentMillis - ser_previousMillis >=  (print_time){
+  if ((currentMillis - print_previousMillis) >= print_time) {
   Serial.print("Shed Temperature: ");
-  Serial.print(shed_var);
-  Serial.print("   Bread Board Temp: ");
-  Serial.print(tempF1);
-  Serial.print("  Cricket Temp: ");
-  Serial.print(cricket_var);
-  Serial.print("  Jango Temp: ");
-  Serial.print(jango_var);
-  Serial.print("  Relay Temp:");
-  Serial.print(relay_var);
-  Serial.print("  Outside temp:");
-  Serial.println(outside_var); 
-  ser_previousMillis = currentMillis;
- }
- 
-  // delay(5 * MIN);
-  //delay(5000);
+    Serial.print(shed_var);
+    Serial.print("   Bread Board Temp: ");
+    Serial.print(tempF1);
+    Serial.print("  Cricket Temp: ");
+    Serial.print(cricket_var);
+    Serial.print("  Jango Temp: ");
+    Serial.print(jango_var);
+    Serial.print("  Relay Temp:");
+    Serial.print(relay_var);
+    Serial.print("  Outside temp:");
+    Serial.println(outside_var);
+    print_previousMillis = currentMillis;
+  }
+
 }
