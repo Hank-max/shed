@@ -19,13 +19,15 @@ unsigned long fan_previousMillis = 0;
 unsigned long comp_previousMillis = 0;
 unsigned long win_previousMillis = 0;
 unsigned long heater_previousMillis = 0;
-unsigned long print_previousMillis = 0;//this is for serial print
+unsigned long print_previousMillis = 0;
+unsigned long light_previousMillis = 0;
 
 long win_time = 60 * MIN;
 long compfan_time = 30 * SECONDS;
 long heater_time = 1 * MIN; //60 * MIN;
 long fan_time = 5 * MIN;
 long print_time = 5 * SECONDS;
+long light_time = 5 * MIN;
 
 /**********************************************************************************************/
 /*INT Adafruit Data Shield
@@ -137,6 +139,7 @@ void setup()
   pinMode(win_relay, OUTPUT);
   pinMode(op_switch, INPUT);
   pinMode(cl_switch, INPUT);
+  pinMode(dk_lights, OUTPUT);
 
 
   /**************************************************************************************************
@@ -190,7 +193,40 @@ void loop() {
   float dk_avg = (cricket_var + jango_var) / 2;
   float shed_avg = (outside_var + shed_var) / 2;
   float outside_avg = (outside_var);
+  
+  /**************************************************************************************************
+      Light Loop
+  **************************************************************************************************/
+      // You can change the gain on the fly, to adapt to brighter/dimmer light situations
+    tsl.setGain(TSL2591_GAIN_LOW);    // 1x gain (bright light)
+   // tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
+    //tsl.setGain(TSL2591_GAIN_HIGH);   // 428x gain
 
+    // Changing the integration time gives you a longer time over which to sense light
+    // longer timelines are slower, but are good in very low light situtations!
+    //tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);  // shortest integration time (bright light)
+    // tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
+    tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
+    // tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
+    // tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
+    // tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);  // longest integration time (dim light)
+	
+	     // More advanced data read example. Read 32 bits with top 16 bits IR, bottom 16 bits full spectrum
+    // That way you can do whatever math and comparisons you want! 
+	  uint32_t lum = tsl.getFullLuminosity();
+    uint16_t ir, full;
+    ir = lum >> 16;
+    full = lum & 0xFFFF;
+	
+	    if ((full < 5000) && (currentMillis - light_previousMillis >= light_time)) {
+      digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
+     Serial.print( " LIGHT IS ON ");//TODO is to fix all of the serial prints. 
+    }
+    else {
+      digitalWrite(dk_lights, HIGH);
+      Serial.print( " LIGHT IS OFF ");
+    }
+  
   /****************************************************************************************************
      Fans Loop and Temperature Variables
    ****************************************************************************************************/
@@ -240,20 +276,18 @@ void loop() {
     comp_previousMillis = currentMillis;
   }
 
-  /*
-      This is the loop for the IR Heater, which is only going to run the first hour of REALLY cold days.
-  */
+  /*******************************************************************************************************
+      IR Heater Loop
+  ********************************************************************************************************/
   if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis <= (heater_time)))
   {
     digitalWrite(heater, HIGH);
-    digitalWrite(dk_fans, HIGH);
     //Serial.println("Heater");
     //heater_previousMillis = currentMillis;
-    //i do not need a previous millis becuase i want this to just run the first hour when the system is turned on.
+    //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out. 
   }
   else {
     digitalWrite(heater, LOW);
-    digitalWrite(dk_fans, LOW);
   }
 
   /******************************************************************************************
@@ -321,6 +355,20 @@ void loop() {
     Serial Print
   ***********************************************************************************************************/
   if ((currentMillis - print_previousMillis) >= print_time) {
+      Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(") ");
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.println(now.second(), DEC);
+	
+	Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
+	
   Serial.print("Shed Temperature: ");
     Serial.print(shed_var);
     Serial.print("   Bread Board Temp: ");
