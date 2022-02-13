@@ -251,18 +251,17 @@ void loop() {
   ir = lum >> 16;
   full = lum & 0xFFFF;
 
-  if ((full < 5000) && (currentMillis - light_previousMillis >= light_time)) {
+if (currentMillis - light_previousMillis >= light_time){
+  if (full < 5000) {
     digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
     Serial.print( " LIGHT IS ON  ");
-	light_previousMillis = currentMillis;
   }
   else {
     digitalWrite(dk_lights, HIGH);
     Serial.print( " LIGHT IS OFF  ");
-	light_previousMillis = currentMillis;
-
-  }
-
+	 }
+	 light_previousMillis = currentMillis;
+}
   /****************************************************************************************************
      Fans Loop and Temperature Variables
    ****************************************************************************************************/
@@ -291,9 +290,8 @@ void loop() {
         Serial.print("  DK FAN IS OFF  ");
       }
     }
-
     //Shed Fan Loop
-    if ((shed_avg >= 70) && (currentMillis - fan_previousMillis >= fan_time)) {
+    if (shed_avg >= 70) {
       digitalWrite (shed_fan, HIGH);
       Serial.print("   Shed FAN IS ON  ");
     }
@@ -307,33 +305,33 @@ void loop() {
   /*******************************************************************************************************
      Computer Fan Loop
    *******************************************************************************************************/
-  if ((tempF1 >= 65) && (currentMillis - comp_previousMillis >= compfan_time)) {
+  if (currentMillis - comp_previousMillis >= compfan_time){
+  if (tempF1 >= 65) {
     digitalWrite (comp_fans, LOW); //The relay requires a low input to trigger the relay
     Serial.print("   Comp FAN IS ON  ");
-    comp_previousMillis = currentMillis;
   }
   else {
     digitalWrite (comp_fans, HIGH);
     Serial.print("   Comp FAN IS OFF  ");
-    comp_previousMillis = currentMillis;
+  }
+  comp_previousMillis = currentMillis;
   }
 
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
-  if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis-heater_previousMillis >= heater_time))
-  {
+  if (currentMillis-heater_previousMillis >= heater_time) {
+  if ((outside_avg <= 0) && (dk_avg < 40)){
     digitalWrite(heater, HIGH);
     Serial.print("   Heater IS ON  ");
-    heater_previousMillis = currentMillis;
     //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out.
   }
   else {
     digitalWrite(heater, LOW);
     Serial.print("   Heater IS OFF  ");
-	heater_previousMillis = currentMillis;
   }
-
+  heater_previousMillis = currentMillis;
+  }
   /******************************************************************************************
     Loop for Window Motor
   *******************************************************************************************/
