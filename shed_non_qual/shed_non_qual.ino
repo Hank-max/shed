@@ -130,7 +130,7 @@ void setup()
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
  
-  status = bme.begin();// BME280 Temp Sensor
+  bme.begin();// BME280 Temp Sensor
   
       sensors.begin(); // this is for the DS18B20 (oneWire)
     sensors.requestTemperatures(); // Send the command to get temperatures
@@ -221,7 +221,8 @@ void loop() {
   float outside_var = sensors.getTempC(outside_temp);
   float outsideF_var = sensors.getTempF(outside_temp);
   float shed_var = sensors.getTempF(shed_temp);
-  float relay_var = sensors.getTempF(relay_temp);
+  //float relay_var = sensors.getTempF(relay_temp);
+  //TODO: I still need to solder this wire into the board
 
 
   //BMP280 (outside sensor)
@@ -414,7 +415,8 @@ if (currentMillis - light_previousMillis >= light_time){
 
     Serial.print("Shed Temperature: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
-    Serial.print("  Relay Temp:"); Serial.print(relay_var); Serial.print("  Outside temp:"); Serial.print(outside_var);
+    //Serial.print("  Relay Temp:"); Serial.print(relay_var); 
+    Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
 
     Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
