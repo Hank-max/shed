@@ -7,7 +7,7 @@ const int dk_lights = 33; // 12V relay to lights in dog kennel.
 const int dk_fans = 43; //SS relay for fans in dog kennel.
 const int comp_fans = 34;//12V relay for fans in computer box.
 const int shed_fan = 47; // SS relay for shed fan.
-const int heater = 39; //SS relay for IR Heater.
+const int heater = 39; //SS relay for IR  Heater.
 
 /**********************************************************************************************
    INT Loop Times
