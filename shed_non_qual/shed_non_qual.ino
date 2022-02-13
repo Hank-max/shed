@@ -411,15 +411,17 @@ if (currentMillis - light_previousMillis >= light_time){
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
     Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
 
-    Serial.print(F("Full: ")); Serial.print(full); Serial.println(F("  "));
+    Serial.print("dk_fans  ");Serial.print(digitalRead(dk_fans));
+	
+	Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  ")); 
+	
+	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
 
-    Serial.print("Shed Temperature: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+    Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
     //Serial.print("  Relay Temp:"); Serial.print(relay_var); 
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-
-    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
 
     Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
     Serial.print("  Shed AVG:"); Serial.println(shed_avg);
