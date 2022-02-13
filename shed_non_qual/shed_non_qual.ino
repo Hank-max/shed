@@ -290,7 +290,7 @@ void loop() {
     }
 
     //Shed Fan Loop
-    if (shed_avg >= 70) {
+    if ((shed_avg >= 70) && (currentMillis - fan_previousMillis >= fan_time)) {
       digitalWrite (shed_fan, HIGH);
       Serial.print("   Shed FAN IS ON  ");
     }
@@ -318,16 +318,17 @@ void loop() {
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
-  if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis <= (heater_time)))
+  if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis-heater_previousMillis >= heater_time))
   {
     digitalWrite(heater, HIGH);
     Serial.print("   Heater IS ON  ");
-    //heater_previousMillis = currentMillis;
+    heater_previousMillis = currentMillis;
     //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out.
   }
   else {
     digitalWrite(heater, LOW);
     Serial.print("   Heater IS OFF  ");
+	heater_previousMillis = currentMillis;
   }
 
   /******************************************************************************************
