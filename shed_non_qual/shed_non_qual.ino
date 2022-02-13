@@ -1,17 +1,17 @@
 
 
+/**********************************************************************************************
+   INT Relays
+***********************************************************************************************/
 const int dk_lights = 33; // 12V relay to lights in dog kennel.
 const int dk_fans = 43; //SS relay for fans in dog kennel.
 const int comp_fans = 34;//12V relay for fans in computer box.
 const int shed_fan = 47; // SS relay for shed fan.
 const int heater = 39; //SS relay for IR Heater.
 
-
-
 /**********************************************************************************************
    INT Loop Times
 ***********************************************************************************************/
-
 const unsigned long SECONDS = 1000;
 const unsigned long MIN = (60 * SECONDS);
 
@@ -59,9 +59,8 @@ void error(char *str)// the error function is uded if there is something bad hap
 RTC_PCF8523 rtc; // I found a different variable (RTC_DS1307) If the time is incorrect than i want to try this
 
 /***************************************************************************************************
- INT TSL2591 Digital Light Sensor
+  INT TSL2591 Digital Light Sensor
 ***************************************************************************************************/
-
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
 Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
@@ -111,12 +110,12 @@ DHT dht2(sensor2, DHTTYPE);
 #define win_relay 36 //12V relay to window motor Microstepper
 #define op_switch 29 //open indicator switch for window
 #define cl_switch 25 //close indicator switch for window
+#define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
 int window_var; //Variable based on temperature for window
 int op_lastButtonState;   //Open Switch Debounce
 int cl_lastButtonState;   //Close Switch Debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time
-
 
 /*********************************************************************************************************************
 *********************************************************************************************************************
@@ -126,24 +125,28 @@ unsigned long debounceDelay = 50;    // the debounce time
 void setup()
 {
   Serial.begin(9600);
-  //Serial.begin(115200);// This has to be 115200 for the DS18B20 sensors to work in series
-  dht1.begin();
+  //Serial.begin(115200);
+
+  dht1.begin();//DHT11 Temperature Sensors inside pelican case
+  dht2.begin();//DHT11 Temperature Sensors outside pelican case
 
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
   pinMode(comp_fans, OUTPUT);
   pinMode(heater, OUTPUT);
+  pinMode(dk_lights, OUTPUT);
+
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   pinMode(win_relay, OUTPUT);
   pinMode(op_switch, INPUT);
   pinMode(cl_switch, INPUT);
-  pinMode(dk_lights, OUTPUT);
+  pinMode(motor_comm_pwr, OUTPUT);
 
 
   /**************************************************************************************************
-   SETUP Data Logger Shield Setup
+    SETUP Data Logger Shield Setup
   *************************************************************************************************/
   Serial.print("Initializing SD card...");
   // make sure that the default chip select pin is set to
@@ -174,59 +177,89 @@ void setup()
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
+  
+    /**************************************************************************************************
+    SETUP Data Logger Shield Setup
+  *************************************************************************************************/
+      Wire.begin(); // i added this, so lets see if it works.
+//    if (! rtc.begin()) {
+//      Serial.println("Couldn't find RTC");
+//      while (1);
+//    }
 
-delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
+    dataFile.print("date/time"); // this is going to be the top column of the excel file, so adjust accordingly
+    if (! rtc.initialized()) {
+      Serial.println("RTC is NOT running!");
+      // following line sets the RTC to the date & time this sketch was compiled
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+      // This line sets the RTC with an explicit date & time, for example to set
+      // January 21, 2014 at 3am you would call:
+      //rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+    }
+
+  delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
 }
 
 void loop() {
   unsigned long currentMillis = millis();
+  digitalWrite(motor_comm_pwr, HIGH);//Continuous 5V signal to window switches (COMM)
 
+  //DHT11 Temperature Sensors
   float hum1 = dht1.readHumidity();
-  float tempF1 = dht1.readTemperature(true);// this is the sensor on the bread board
+  float hum2 = dht2.readHumidity();
+  float tempF1 = dht1.readTemperature(true);//DHT11 Temperature Sensors inside pelican case
+  float tempF2 = dht2.readTemperature(true);//DHT11 Temperature Sensors outside pelican case
 
+  //Temp Sensor DS18B20
   float cricket_var = sensors.getTempF(cricket_temp);
   float jango_var = sensors.getTempF(jango_temp);
+  float outside_var = sensors.getTempC(outside_temp);
+  float outsideF_var = sensors.getTempF(outside_temp);
   float shed_var = sensors.getTempF(shed_temp);
   float relay_var = sensors.getTempF(relay_temp);
-  float outside_var = sensors.getTempC(outside_temp);
 
+
+  //BMP280 (outside sensor)
+  float ws_temp_var = bme.readTemperature();
+
+  //Variables
   float dk_avg = (cricket_var + jango_var) / 2;
-  float shed_avg = (outside_var + shed_var) / 2;
-  float outside_avg = (outside_var);
-  
+  float shed_avg = (tempF2 + shed_var) / 2;
+  float outside_avg = (ws_temp_var + outside_var) / 2;
+
   /**************************************************************************************************
       Light Loop
   **************************************************************************************************/
-      // You can change the gain on the fly, to adapt to brighter/dimmer light situations
-    tsl.setGain(TSL2591_GAIN_LOW);    // 1x gain (bright light)
-   // tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
-    //tsl.setGain(TSL2591_GAIN_HIGH);   // 428x gain
+  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
+  tsl.setGain(TSL2591_GAIN_LOW);    // 1x gain (bright light)
+  // tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
+  //tsl.setGain(TSL2591_GAIN_HIGH);   // 428x gain
 
-    // Changing the integration time gives you a longer time over which to sense light
-    // longer timelines are slower, but are good in very low light situtations!
-    //tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);  // shortest integration time (bright light)
-    // tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
-    tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
-    // tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
-    // tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
-    // tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);  // longest integration time (dim light)
-	
-	     // More advanced data read example. Read 32 bits with top 16 bits IR, bottom 16 bits full spectrum
-    // That way you can do whatever math and comparisons you want! 
-	  uint32_t lum = tsl.getFullLuminosity();
-    uint16_t ir, full;
-    ir = lum >> 16;
-    full = lum & 0xFFFF;
-	
-	    if ((full < 5000) && (currentMillis - light_previousMillis >= light_time)) {
-      digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
-     Serial.print( " LIGHT IS ON ");//TODO is to fix all of the serial prints. 
-    }
-    else {
-      digitalWrite(dk_lights, HIGH);
-      Serial.print( " LIGHT IS OFF ");
-    }
-  
+  // Changing the integration time gives you a longer time over which to sense light
+  // longer timelines are slower, but are good in very low light situtations!
+  //tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);  // shortest integration time (bright light)
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
+  tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);  // longest integration time (dim light)
+
+  // More advanced data read example. Read 32 bits with top 16 bits IR, bottom 16 bits full spectrum
+  // That way you can do whatever math and comparisons you want!
+  uint32_t lum = tsl.getFullLuminosity();
+  uint16_t ir, full;
+  ir = lum >> 16;
+  full = lum & 0xFFFF;
+
+  if ((full < 5000) && (currentMillis - light_previousMillis >= light_time)) {
+    digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
+    Serial.print( " LIGHT IS ON  ");
+  }
+  else {
+    digitalWrite(dk_lights, HIGH);
+    Serial.print( " LIGHT IS OFF  ");
+  }
+
   /****************************************************************************************************
      Fans Loop and Temperature Variables
    ****************************************************************************************************/
@@ -235,31 +268,35 @@ void loop() {
       if (dk_avg > 60) {
         digitalWrite(dk_fans, HIGH);
         window_var = 2;
-        Serial.println("   FAN IS ON");
+        Serial.print("   DK FAN IS ON  ");
       }
     }
     else if (dk_avg <= 60) {
       digitalWrite(dk_fans, LOW);
       window_var = 1;
-      Serial.println("   FAN IS OFF");
+      Serial.print("   DK FAN IS OFF  ");
     }
     else if (outside_avg <= 21) {
       if (dk_avg >= 65) {
         digitalWrite(dk_fans, HIGH);
         window_var = 1;
-        Serial.println("  FAN IS ON");
+        Serial.print("  DK FAN IS ON  ");
       }
       else if (dk_avg < 65) {
         digitalWrite(dk_fans, LOW);
         window_var = 2;
-        Serial.println("  FAN IS OFF");
+        Serial.print("  DK FAN IS OFF  ");
       }
     }
+
+    //Shed Fan Loop
     if (shed_avg >= 70) {
       digitalWrite (shed_fan, HIGH);
+      Serial.print("   Shed FAN IS ON  ");
     }
     else {
       digitalWrite (shed_fan, LOW);
+      Serial.print("   Shed FAN IS OFF  ");
     }
     fan_previousMillis = currentMillis;
   }
@@ -267,12 +304,14 @@ void loop() {
   /*******************************************************************************************************
      Computer Fan Loop
    *******************************************************************************************************/
-  if ((tempF1 >= 65) && (currentMillis - comp_previousMillis <= compfan_time)) {
+  if ((tempF1 >= 65) && (currentMillis - comp_previousMillis >= compfan_time)) {
     digitalWrite (comp_fans, LOW); //The relay requires a low input to trigger the relay
+    Serial.print("   Comp FAN IS ON  ");
     comp_previousMillis = currentMillis;
   }
   else {
     digitalWrite (comp_fans, HIGH);
+    Serial.print("   Comp FAN IS OFF  ");
     comp_previousMillis = currentMillis;
   }
 
@@ -282,12 +321,13 @@ void loop() {
   if ((outside_avg <= 0) && (dk_avg < 40) && (currentMillis <= (heater_time)))
   {
     digitalWrite(heater, HIGH);
-    //Serial.println("Heater");
+    Serial.print("   Heater IS ON  ");
     //heater_previousMillis = currentMillis;
-    //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out. 
+    //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out.
   }
   else {
     digitalWrite(heater, LOW);
+    Serial.print("   Heater IS OFF  ");
   }
 
   /******************************************************************************************
@@ -307,7 +347,7 @@ void loop() {
       lastDebounceTime = currentMillis;
     }
     if ((open_value == LOW) && (close_value == HIGH) && ((currentMillis - lastDebounceTime) > debounceDelay)) {
-      digitalWrite(win_relay, LOW);
+      digitalWrite(win_relay, LOW);//turning ON the 12V power to the motor
       digitalWrite(dirPin, HIGH);// this is setting the direction
       delay(100);//this is to give the relay time to turn on/off.
 
@@ -320,7 +360,8 @@ void loop() {
       }
       win_previousMillis = currentMillis;
       delay(100);
-      digitalWrite(win_relay, HIGH);
+      Serial.println("   Window IS OPEN  ");
+      digitalWrite(win_relay, HIGH);//turning off the 12V power to the motor
       window_var = 0;
     }
   }
@@ -334,7 +375,7 @@ void loop() {
       lastDebounceTime = currentMillis;
     }
     if ((open_value == HIGH) && (close_value == LOW) && ((currentMillis - lastDebounceTime) > debounceDelay)) {
-      digitalWrite(win_relay, LOW);
+      digitalWrite(win_relay, LOW);//turning ON the 12V power to the motor
       digitalWrite(dirPin, LOW);// this is setting the direction
       delay(100);//this is to give the relay time to turn on/off.
 
@@ -347,7 +388,8 @@ void loop() {
       }
       win_previousMillis = currentMillis;
       delay(100);
-      digitalWrite(win_relay, HIGH);
+      Serial.println("   Window IS CLOSED  ");
+      digitalWrite(win_relay, HIGH);//turning off the 12V power to the motor
       window_var = 0;
     }
   }
@@ -355,33 +397,37 @@ void loop() {
     Serial Print
   ***********************************************************************************************************/
   if ((currentMillis - print_previousMillis) >= print_time) {
-      Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(") ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.println(now.second(), DEC);
-	
-	Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
-	
-  Serial.print("Shed Temperature: ");
-    Serial.print(shed_var);
-    Serial.print("   Bread Board Temp: ");
-    Serial.print(tempF1);
-    Serial.print("  Cricket Temp: ");
-    Serial.print(cricket_var);
-    Serial.print("  Jango Temp: ");
-    Serial.print(jango_var);
-    Serial.print("  Relay Temp:");
-    Serial.print(relay_var);
-    Serial.print("  Outside temp:");
-    Serial.println(outside_var);
-    print_previousMillis = currentMillis;
-  }
 
+    DateTime now = rtc.now();
+    Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
+    Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
+    Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
+
+    Serial.print(F("Full: ")); Serial.print(full); Serial.println(F("  "));
+
+    Serial.print("Shed Temperature: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+    Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
+    Serial.print("  Relay Temp:"); Serial.print(relay_var); Serial.print("  Outside temp:"); Serial.print(outside_var);
+    Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
+
+    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+
+    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
+    Serial.print("  Shed AVG:"); Serial.println(shed_avg);
+
+    print_previousMillis = currentMillis;
+  
+  /***********************************************************************************************************
+    Data File Print
+  ***********************************************************************************************************/
+	dataFile.print(now.year(), DEC);dataFile.print('/');dataFile.print(now.month(), DEC);dataFile.print('/');
+    dataFile.print(now.day(), DEC);dataFile.print(") ");dataFile.print(",");dataFile.print(now.hour(), DEC);
+    dataFile.print(':');dataFile.print(now.minute(), DEC);dataFile.print(':');dataFile.print(now.second(), DEC);
+    dataFile.print(",");
+	
+	    dataFile.print("Light Sensor: ir full full-ir lux");dataFile.print(",");dataFile.print(ir);dataFile.print(",");
+    dataFile.print(full);dataFile.print(",");dataFile.print(full - ir);dataFile.print(",");dataFile.print(tsl.calculateLux(full, ir), 6);
+    
+    
+}
 }

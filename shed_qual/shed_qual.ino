@@ -297,9 +297,10 @@ void setup()
     float jango_var = sensors.getTempF(jango_temp);
     float outside_var = sensors.getTempC(outside_temp);
     float shed_var = sensors.getTempF(shed_temp);
-    float ws_temp_var = bme.readTemperature();
-    float comp_shed_var = dht2.readTemperature(true);
     float outsideF_var = sensors.getTempF(outside_temp);
+	
+	float ws_temp_var = bme.readTemperature();
+    float comp_shed_var = dht2.readTemperature(true);
 
     pinMode(shed_fan, OUTPUT);
     pinMode(dk_fans, OUTPUT);
