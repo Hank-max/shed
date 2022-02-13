@@ -254,10 +254,13 @@ void loop() {
   if ((full < 5000) && (currentMillis - light_previousMillis >= light_time)) {
     digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
     Serial.print( " LIGHT IS ON  ");
+	light_previousMillis = currentMillis;
   }
   else {
     digitalWrite(dk_lights, HIGH);
     Serial.print( " LIGHT IS OFF  ");
+	light_previousMillis = currentMillis;
+
   }
 
   /****************************************************************************************************
