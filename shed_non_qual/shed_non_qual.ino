@@ -129,6 +129,11 @@ void setup()
 
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
+ 
+  status = bme.begin();// BME280 Temp Sensor
+  
+      sensors.begin(); // this is for the DS18B20 (oneWire)
+    sensors.requestTemperatures(); // Send the command to get temperatures
 
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
