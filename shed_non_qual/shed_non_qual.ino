@@ -90,7 +90,7 @@ DeviceAddress outside_temp = { 0x28, 0xF4, 0x45, 0x95, 0xF0, 0x01, 0x3C, 0xBF};/
 DeviceAddress cricket_temp = { 0x28, 0x8A, 0x95, 0xF7, 0x4B, 0x20, 0x1, 0xC6 };// this is cricket
 DeviceAddress shed_temp = {0x28, 0xD6, 0xE4, 0x10, 0x4C, 0x20, 0x01, 0x80 };// This is the outside sensor in weather station
 DeviceAddress jango_temp = {0x28, 0xE7, 0xDF, 0xE2, 0x4B, 0x20, 0x1, 0xA2};// this is Jango
-DeviceAddress relay_temp = { 0x28, 0x21, 0xB3, 0x95, 0xF0, 0x01, 0x3C, 0xAA };// Need to get the info for this sensor.
+//DeviceAddress relay_temp = { 0x28, 0x21, 0xB3, 0x95, 0xF0, 0x01, 0x3C, 0xAA };// Need to get the info for this sensor.
 
 /************************************************************************************************
   INT DHT11 temp and humidity sensor
@@ -129,11 +129,11 @@ void setup()
 
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
- 
+
   bme.begin();// BME280 Temp Sensor
+
+  sensors.begin(); // this is for the DS18B20 (oneWire)
   
-      sensors.begin(); // this is for the DS18B20 (oneWire)
-    sensors.requestTemperatures(); // Send the command to get temperatures
 
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
@@ -182,25 +182,25 @@ void setup()
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
-  
-    /**************************************************************************************************
+
+  /**************************************************************************************************
     SETUP Data Logger Shield Setup
   *************************************************************************************************/
-      Wire.begin(); // i added this, so lets see if it works.
-//    if (! rtc.begin()) {
-//      Serial.println("Couldn't find RTC");
-//      while (1);
-//    }
+  Wire.begin(); // i added this, so lets see if it works.
+  //    if (! rtc.begin()) {
+  //      Serial.println("Couldn't find RTC");
+  //      while (1);
+  //    }
 
-    dataFile.print("date/time"); // this is going to be the top column of the excel file, so adjust accordingly
-    if (! rtc.initialized()) {
-      Serial.println("RTC is NOT running!");
-      // following line sets the RTC to the date & time this sketch was compiled
-      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-      // This line sets the RTC with an explicit date & time, for example to set
-      // January 21, 2014 at 3am you would call:
-      //rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-    }
+  dataFile.print("date/time"); // this is going to be the top column of the excel file, so adjust accordingly
+  if (! rtc.initialized()) {
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    //rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  }
 
   delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
 }
@@ -216,6 +216,7 @@ void loop() {
   float tempF2 = dht2.readTemperature(true);//DHT11 Temperature Sensors outside pelican case
 
   //Temp Sensor DS18B20
+  sensors.requestTemperatures(); // Send the command to get temperatures
   float cricket_var = sensors.getTempF(cricket_temp);
   float jango_var = sensors.getTempF(jango_temp);
   float outside_var = sensors.getTempC(outside_temp);
@@ -257,17 +258,17 @@ void loop() {
   ir = lum >> 16;
   full = lum & 0xFFFF;
 
-if (currentMillis - light_previousMillis >= light_time){
-  if (full < 5000) {
-    digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
-    Serial.print( " LIGHT IS ON  ");
+  if (currentMillis - light_previousMillis >= light_time) {
+    if (full < 5000) {
+      digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
+      Serial.print( " LIGHT IS ON  ");
+    }
+    else {
+      digitalWrite(dk_lights, HIGH);
+      Serial.print( " LIGHT IS OFF  ");
+    }
+    light_previousMillis = currentMillis;
   }
-  else {
-    digitalWrite(dk_lights, HIGH);
-    Serial.print( " LIGHT IS OFF  ");
-	 }
-	 light_previousMillis = currentMillis;
-}
   /****************************************************************************************************
      Fans Loop and Temperature Variables
    ****************************************************************************************************/
@@ -311,32 +312,32 @@ if (currentMillis - light_previousMillis >= light_time){
   /*******************************************************************************************************
      Computer Fan Loop
    *******************************************************************************************************/
-  if (currentMillis - comp_previousMillis >= compfan_time){
-  if (tempF1 >= 65) {
-    digitalWrite (comp_fans, LOW); //The relay requires a low input to trigger the relay
-    Serial.print("   Comp FAN IS ON  ");
-  }
-  else {
-    digitalWrite (comp_fans, HIGH);
-    Serial.print("   Comp FAN IS OFF  ");
-  }
-  comp_previousMillis = currentMillis;
+  if (currentMillis - comp_previousMillis >= compfan_time) {
+    if (tempF1 >= 65) {
+      digitalWrite (comp_fans, LOW); //The relay requires a low input to trigger the relay
+      Serial.print("   Comp FAN IS ON  ");
+    }
+    else {
+      digitalWrite (comp_fans, HIGH);
+      Serial.print("   Comp FAN IS OFF  ");
+    }
+    comp_previousMillis = currentMillis;
   }
 
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
-  if (currentMillis-heater_previousMillis >= heater_time) {
-  if ((outside_avg <= 0) && (dk_avg < 40)){
-    digitalWrite(heater, HIGH);
-    Serial.print("   Heater IS ON  ");
-    //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out.
-  }
-  else {
-    digitalWrite(heater, LOW);
-    Serial.print("   Heater IS OFF  ");
-  }
-  heater_previousMillis = currentMillis;
+  if (currentMillis - heater_previousMillis >= heater_time) {
+    if ((outside_avg <= 0) && (dk_avg < 45)) {
+      digitalWrite(heater, HIGH);
+      Serial.print("   Heater IS ON  ");
+      //TODO: i do not need a previous millis becuase i want this to just run the first hour when the system is turned on. Still need to figure this out.
+    }
+    else {
+      digitalWrite(heater, LOW);
+      Serial.print("   Heater IS OFF  ");
+    }
+    heater_previousMillis = currentMillis;
   }
   /******************************************************************************************
     Loop for Window Motor
@@ -411,15 +412,15 @@ if (currentMillis - light_previousMillis >= light_time){
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
     Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
 
-    Serial.print("dk_fans  ");Serial.print(digitalRead(dk_fans));
-	
-	Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  ")); 
-	
-	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+    Serial.print("dk_fans  "); Serial.print(digitalRead(dk_fans));
+
+    Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
+
+    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
 
     Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
-    //Serial.print("  Relay Temp:"); Serial.print(relay_var); 
+    //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
 
@@ -427,18 +428,18 @@ if (currentMillis - light_previousMillis >= light_time){
     Serial.print("  Shed AVG:"); Serial.println(shed_avg);
 
     print_previousMillis = currentMillis;
-  
-  /***********************************************************************************************************
-    Data File Print
-  ***********************************************************************************************************/
-	dataFile.print(now.year(), DEC);dataFile.print('/');dataFile.print(now.month(), DEC);dataFile.print('/');
-    dataFile.print(now.day(), DEC);dataFile.print(") ");dataFile.print(",");dataFile.print(now.hour(), DEC);
-    dataFile.print(':');dataFile.print(now.minute(), DEC);dataFile.print(':');dataFile.print(now.second(), DEC);
+
+    /***********************************************************************************************************
+      Data File Print
+    ***********************************************************************************************************/
+    dataFile.print(now.year(), DEC); dataFile.print('/'); dataFile.print(now.month(), DEC); dataFile.print('/');
+    dataFile.print(now.day(), DEC); dataFile.print(") "); dataFile.print(","); dataFile.print(now.hour(), DEC);
+    dataFile.print(':'); dataFile.print(now.minute(), DEC); dataFile.print(':'); dataFile.print(now.second(), DEC);
     dataFile.print(",");
-	
-	    dataFile.print("Light Sensor: ir full full-ir lux");dataFile.print(",");dataFile.print(ir);dataFile.print(",");
-    dataFile.print(full);dataFile.print(",");dataFile.print(full - ir);dataFile.print(",");dataFile.print(tsl.calculateLux(full, ir), 6);
-    
-    
-}
+
+    dataFile.print("Light Sensor: ir full full-ir lux"); dataFile.print(","); dataFile.print(ir); dataFile.print(",");
+    dataFile.print(full); dataFile.print(","); dataFile.print(full - ir); dataFile.print(","); dataFile.print(tsl.calculateLux(full, ir), 6);
+
+
+  }
 }
