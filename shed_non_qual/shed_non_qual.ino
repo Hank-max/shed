@@ -124,23 +124,22 @@ unsigned long debounceDelay = 50;    // the debounce time
 *********************************************************************************************************************/
 void setup()
 {
-  Serial.begin(9600);
-  //Serial.begin(115200);
+ Serial.begin(9600);
+ // Serial.begin(115200);
+
+  sensors.begin(); // this is for the DS18B20 (oneWire)
+  sensors.requestTemperatures(); // Send the command to get temperatures
 
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
 
   bme.begin();// BME280 Temp Sensor
-
-  sensors.begin(); // this is for the DS18B20 (oneWire)
   
-
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
   pinMode(comp_fans, OUTPUT);
   pinMode(heater, OUTPUT);
   pinMode(dk_lights, OUTPUT);
-
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
@@ -200,8 +199,7 @@ void setup()
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     //rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
-
+  }  
   delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
 }
 
@@ -216,7 +214,6 @@ void loop() {
   float tempF2 = dht2.readTemperature(true);//DHT11 Temperature Sensors outside pelican case
 
   //Temp Sensor DS18B20
-  sensors.requestTemperatures(); // Send the command to get temperatures
   float cricket_var = sensors.getTempF(cricket_temp);
   float jango_var = sensors.getTempF(jango_temp);
   float outside_var = sensors.getTempC(outside_temp);
@@ -225,6 +222,7 @@ void loop() {
   //float relay_var = sensors.getTempF(relay_temp);
   //TODO: I still need to solder this wire into the board
 
+Serial.print("  shed "); Serial.println(sensors.getTempF(shed_temp));
 
   //BMP280 (outside sensor)
   float ws_temp_var = bme.readTemperature();
@@ -233,6 +231,12 @@ void loop() {
   float dk_avg = (cricket_var + jango_var) / 2;
   float shed_avg = (tempF2 + shed_var) / 2;
   float outside_avg = (ws_temp_var + outside_var) / 2;
+
+      Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+    Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
+    //Serial.print("  Relay Temp:"); Serial.print(relay_var);
+    Serial.print("  Outside temp:"); Serial.print(outside_var);
+    Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
 
   /**************************************************************************************************
       Light Loop
@@ -405,41 +409,41 @@ void loop() {
   /***********************************************************************************************************
     Serial Print
   ***********************************************************************************************************/
-  if ((currentMillis - print_previousMillis) >= print_time) {
-
-    DateTime now = rtc.now();
-    Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
-    Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
-    Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
-
-    Serial.print("dk_fans "); Serial.print(digitalRead(dk_fans)); Serial.print(" shed_fan ");Serial.print(digitalRead(shed_fan));
-
-    Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
-
-    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
-
-    Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
-    Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
-    //Serial.print("  Relay Temp:"); Serial.print(relay_var);
-    Serial.print("  Outside temp:"); Serial.print(outside_var);
-    Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-
-    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
-    Serial.print("  Shed AVG:"); Serial.println(shed_avg);
-
-    print_previousMillis = currentMillis;
-
-    /***********************************************************************************************************
-      Data File Print
-    ***********************************************************************************************************/
-    dataFile.print(now.year(), DEC); dataFile.print('/'); dataFile.print(now.month(), DEC); dataFile.print('/');
-    dataFile.print(now.day(), DEC); dataFile.print(") "); dataFile.print(","); dataFile.print(now.hour(), DEC);
-    dataFile.print(':'); dataFile.print(now.minute(), DEC); dataFile.print(':'); dataFile.print(now.second(), DEC);
-    dataFile.print(",");
-
-    dataFile.print("Light Sensor: ir full full-ir lux"); dataFile.print(","); dataFile.print(ir); dataFile.print(",");
-    dataFile.print(full); dataFile.print(","); dataFile.print(full - ir); dataFile.print(","); dataFile.print(tsl.calculateLux(full, ir), 6);
-
-
-  }
+//  if ((currentMillis - print_previousMillis) >= print_time) {
+//
+//    DateTime now = rtc.now();
+//    Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
+//    Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
+//    Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
+//
+//    Serial.print("dk_fans "); Serial.print(digitalRead(dk_fans)); Serial.print(" shed_fan ");Serial.print(digitalRead(shed_fan));
+//
+//    Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
+//
+//    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+//
+//    Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+//    Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
+//    //Serial.print("  Relay Temp:"); Serial.print(relay_var);
+//    Serial.print("  Outside temp:"); Serial.print(outside_var);
+//    Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
+//
+//    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
+//    Serial.print("  Shed AVG:"); Serial.println(shed_avg);
+//
+//    print_previousMillis = currentMillis;
+//
+//    /***********************************************************************************************************
+//      Data File Print
+//    ***********************************************************************************************************/
+//    dataFile.print(now.year(), DEC); dataFile.print('/'); dataFile.print(now.month(), DEC); dataFile.print('/');
+//    dataFile.print(now.day(), DEC); dataFile.print(") "); dataFile.print(","); dataFile.print(now.hour(), DEC);
+//    dataFile.print(':'); dataFile.print(now.minute(), DEC); dataFile.print(':'); dataFile.print(now.second(), DEC);
+//    dataFile.print(",");
+//
+//    dataFile.print("Light Sensor: ir full full-ir lux"); dataFile.print(","); dataFile.print(ir); dataFile.print(",");
+//    dataFile.print(full); dataFile.print(","); dataFile.print(full - ir); dataFile.print(","); dataFile.print(tsl.calculateLux(full, ir), 6);
+//
+//
+//  }
 }
