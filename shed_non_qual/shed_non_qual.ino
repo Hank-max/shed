@@ -22,7 +22,7 @@ unsigned long heater_previousMillis = 0;
 unsigned long print_previousMillis = 0;
 unsigned long light_previousMillis = 0;
 
-long win_time = 60 * MIN;
+long win_time = 30 * SECONDS; //MIN;
 long compfan_time = 30 * SECONDS;
 long heater_time = 1 * MIN; //60 * MIN;
 long fan_time = 5 * MIN;
@@ -412,7 +412,7 @@ void loop() {
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
     Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
 
-    Serial.print("dk_fans  "); Serial.print(digitalRead(dk_fans));
+    Serial.print("dk_fans "); Serial.print(digitalRead(dk_fans)); Serial.print(" shed_fan ");Serial.print(digitalRead(shed_fan));
 
     Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));
 
