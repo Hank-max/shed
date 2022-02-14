@@ -1,5 +1,24 @@
 
 
+/**********************************************************************************************
+   INT Loop Times
+***********************************************************************************************/
+const unsigned long SECONDS = 1000;
+const unsigned long MIN = (60 * SECONDS);
+
+unsigned long fan_previousMillis = 0;
+unsigned long comp_previousMillis = 0;
+unsigned long win_previousMillis = 0;
+unsigned long heater_previousMillis = 0;
+unsigned long print_previousMillis = 0;
+unsigned long light_previousMillis = 0;
+
+long win_time = 30 * SECONDS; //MIN;
+long compfan_time = 30 * SECONDS;
+long heater_time = 1 * MIN; //60 * MIN;
+long fan_time = 5 * MIN;
+long print_time = 5 * SECONDS;
+long light_time = 5 * MIN;
 
 /*********************************************************************************************
   INT Temp Sensor DS18B20
@@ -23,6 +42,7 @@ void setup()
  sensors.begin(); // this is for the DS18B20 (oneWire)
 }
 void loop() {
+  unsigned long currentMillis = millis();
   //Temp Sensor DS18B20
   sensors.requestTemperatures(); // Send the command to get temperatures
   float cricket_var = sensors.getTempF(cricket_temp);
@@ -33,12 +53,16 @@ void loop() {
   //float relay_var = sensors.getTempF(relay_temp);
   //TODO: I still need to solder this wire into the board
 
-
-
+  /***********************************************************************************************************
+    Serial Print
+  ***********************************************************************************************************/
+if ((currentMillis - print_previousMillis) >= print_time) {
     Serial.print("Shed Temp: "); Serial.print(shed_var); //Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-
+	
+	print_previousMillis = currentMillis;
+}
 }
