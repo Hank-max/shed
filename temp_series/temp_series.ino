@@ -21,9 +21,9 @@ void setup(void){
 }
 
 void loop(void){ 
-  Serial.print("Requesting temperatures...");
+  //Serial.print("Requesting temperatures...");
   sensors.requestTemperatures(); // Send the command to get temperatures
-  Serial.println("DONE");
+  //Serial.println("DONE");
   
   Serial.print("Shed Temperature(*C): ");
   Serial.print(sensors.getTempC(shed_temp)); 
@@ -45,5 +45,5 @@ void loop(void){
   Serial.print("(*F): ");
   Serial.println(sensors.getTempF(jango_temp));
   
-  delay(2000);
+  //delay(2000);
 }

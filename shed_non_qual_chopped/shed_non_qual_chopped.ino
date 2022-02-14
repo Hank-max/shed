@@ -231,9 +231,9 @@ void loop() {
   //float ws_temp_var = bme.readTemperature();
 
   //Variables
-  float dk_avg = (cricket_var + jango_var) / 2;
-  float shed_avg = (tempF2 + shed_var) / 2;
-  float outside_avg = (ws_temp_var + outside_var) / 2;
+//  float dk_avg = (cricket_var + jango_var) / 2;
+//  float shed_avg = (tempF2 + shed_var) / 2;
+//  float outside_avg = (ws_temp_var + outside_var) / 2;
 
   /**************************************************************************************************
       Light Loop
@@ -419,7 +419,7 @@ void loop() {
 
     Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %"); */
 
-    Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+    Serial.print("Shed Temp: "); Serial.print(shed_var); //Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
