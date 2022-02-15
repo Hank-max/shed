@@ -117,8 +117,8 @@ void setup()
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
 
   bme.begin();// BME280 Temp Sensor
-  
-    /**************************************************************************************************
+
+  /**************************************************************************************************
     SETUP Data Logger Shield Setup
   *************************************************************************************************/
   Serial.print("Initializing SD card...");
@@ -168,7 +168,7 @@ void setup()
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
     //rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }  
+  }
   delay(100);// there may need to be a slight delay here for the sensor to 'warm up'
 }
 /*********************************************************************************************************************
@@ -201,9 +201,9 @@ void loop() {
   float dk_avg = (cricket_var + jango_var) / 2;
   float shed_avg = (tempF2 + shed_var) / 2;
   float outside_avg = (ws_temp_var + outside_var) / 2;
-  
-    /**************************************************************************************************
-      Light Loop
+
+  /**************************************************************************************************
+    Light Loop
   **************************************************************************************************/
   // You can change the gain on the fly, to adapt to brighter/dimmer light situations
   tsl.setGain(TSL2591_GAIN_LOW);    // 1x gain (bright light)
@@ -230,7 +230,7 @@ void loop() {
     Serial Print
   ***********************************************************************************************************/
   if ((currentMillis - print_previousMillis) >= print_time) {
-	  
+
     DateTime now = rtc.now();
     Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
@@ -240,15 +240,15 @@ void loop() {
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-	
-	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.print(" %");Serial.print(F("  Full: ")); Serial.print(full); Serial.println(F("  "));
-	
-	    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
+
+    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.print(" %"); Serial.print(F("  Full: ")); Serial.print(full); Serial.println(F("  "));
+
+    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
     Serial.print("  Shed AVG:"); Serial.println(shed_avg);
-	
+
     /***********************************************************************************************************
-//      Data File Print
-//    ***********************************************************************************************************/
+      //      Data File Print
+      //    ***********************************************************************************************************/
     dataFile.print(now.year(), DEC); dataFile.print('/'); dataFile.print(now.month(), DEC); dataFile.print('/');
     dataFile.print(now.day(), DEC); dataFile.print(") "); dataFile.print(","); dataFile.print(now.hour(), DEC);
     dataFile.print(':'); dataFile.print(now.minute(), DEC); dataFile.print(':'); dataFile.print(now.second(), DEC);
@@ -256,7 +256,7 @@ void loop() {
 
     dataFile.print("Light Sensor: ir full full-ir lux"); dataFile.print(","); dataFile.print(ir); dataFile.print(",");
     dataFile.print(full); dataFile.print(","); dataFile.print(full - ir); dataFile.print(","); dataFile.print(tsl.calculateLux(full, ir), 6);
-	
-	print_previousMillis = currentMillis;
-}
+
+    print_previousMillis = currentMillis;
+  }
 }
