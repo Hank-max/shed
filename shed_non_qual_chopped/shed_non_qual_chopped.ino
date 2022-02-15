@@ -102,6 +102,21 @@ DeviceAddress jango_temp = {0x28, 0xE7, 0xDF, 0xE2, 0x4B, 0x20, 0x1, 0xA2};// th
 DHT dht1(sensor1, DHTTYPE);
 DHT dht2(sensor2, DHTTYPE);
 
+/********************************************************************************************************
+  INT Window Motor
+*********************************************************************************************************/
+#define dirPin 26 //Direction of the window motor CW or CCW
+#define stepPin 28 //Signal for window motor Microstep Driver
+#define win_relay 36 //12V relay to window motor Microstepper
+#define op_switch 29 //open indicator switch for window
+#define cl_switch 25 //close indicator switch for window
+#define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
+int window_var; //Variable based on temperature for window
+int op_lastButtonState;   //Open Switch Debounce
+int cl_lastButtonState;   //Close Switch Debounce
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time
+
 /*********************************************************************************************************************
 *********************************************************************************************************************
                                 SETUP
@@ -118,7 +133,13 @@ void setup()
 
   bme.begin();// BME280 Temp Sensor
   
-    pinMode(stepPin, OUTPUT);
+  pinMode(dk_fans, OUTPUT);
+  pinMode(shed_fan, OUTPUT);
+  pinMode(comp_fans, OUTPUT);
+  pinMode(heater, OUTPUT);
+  pinMode(dk_lights, OUTPUT);
+
+  pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
   pinMode(win_relay, OUTPUT);
   pinMode(op_switch, INPUT);
@@ -185,7 +206,9 @@ void setup()
 *********************************************************************************************************************/
 void loop() {
   unsigned long currentMillis = millis();
+  digitalWrite(motor_comm_pwr, HIGH);//Continuous 5V signal to window switches (COMM)
 
+  //DHT11 Temperature Sensors
   float hum1 = dht1.readHumidity();
   float hum2 = dht2.readHumidity();
   float tempF1 = dht1.readTemperature(true);//DHT11 Temperature Sensors inside pelican case
