@@ -29,6 +29,18 @@ long fan_time = 5 * MIN;
 long print_time = 5 * SECONDS;
 long light_time = 5 * MIN;
 
+/******************************************************************************************
+  INT Temp, Humid, Baro BMP280 (outside sensor)
+ *******************************************************************************************/
+const int BME_SCK = 13;// this is the ____ for the BMP280 (temp, hum, baro) sensor
+const int BME_MISO = 12;// this is the ____ for the BMP280 (temp, hum, baro) sensor
+const int BME_MOSI = 11;// this is the ____ for the BMP280 (temp, hum, baro) sensor
+const int BME_CS = 9; // Chip select for the BMP280 (temp, hum, baro) sensor
+#include <Adafruit_BME280.h>
+#define SEALEVELPRESSURE_HPA (1013.25)
+//Adafruit_BME280 bme(BME_CS); // hardware SPI
+Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
+
 /*********************************************************************************************
   INT Temp Sensor DS18B20
  *********************************************************************************************/
@@ -66,6 +78,8 @@ void setup()
 
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
+  
+  bme.begin();// BME280 Temp Sensor
 }
 /*********************************************************************************************************************
 *********************************************************************************************************************
@@ -89,6 +103,14 @@ void loop() {
   float shed_var = sensors.getTempF(shed_temp);
   //float relay_var = sensors.getTempF(relay_temp);
   //TODO: I still need to solder this wire into the board
+  
+    //BMP280 (outside sensor)
+  float ws_temp_var = bme.readTemperature();
+
+  //Variables
+  float dk_avg = (cricket_var + jango_var) / 2;
+  float shed_avg = (tempF2 + shed_var) / 2;
+  float outside_avg = (ws_temp_var + outside_var) / 2;
 
   /***********************************************************************************************************
     Serial Print
@@ -99,7 +121,9 @@ void loop() {
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-
-    print_previousMillis = currentMillis;
-  }
+	
+	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+	
+	print_previousMillis = currentMillis;
+}
 }
