@@ -74,9 +74,9 @@ void setup()
 {
   Serial.begin(9600);
 
- sensors.begin(); // this is for the DS18B20 (oneWire)
- 
-     dht1.begin();//DHT11 Temperature Sensors inside pelican case
+  sensors.begin(); // this is for the DS18B20 (oneWire)
+
+  dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
   
   bme.begin();// BME280 Temp Sensor
@@ -88,12 +88,12 @@ void setup()
 *********************************************************************************************************************/
 void loop() {
   unsigned long currentMillis = millis();
-  
+
   float hum1 = dht1.readHumidity();
   float hum2 = dht2.readHumidity();
   float tempF1 = dht1.readTemperature(true);//DHT11 Temperature Sensors inside pelican case
   float tempF2 = dht2.readTemperature(true);//DHT11 Temperature Sensors outside pelican case
-  
+
   //Temp Sensor DS18B20
   sensors.requestTemperatures(); // Send the command to get temperatures
   float cricket_var = sensors.getTempF(cricket_temp);
@@ -115,7 +115,7 @@ void loop() {
   /***********************************************************************************************************
     Serial Print
   ***********************************************************************************************************/
-if ((currentMillis - print_previousMillis) >= print_time) {
+  if ((currentMillis - print_previousMillis) >= print_time) {
     Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
