@@ -411,9 +411,11 @@ void loop() {
     Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
     Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
-    Serial.print("dk_fans: "); Serial.print(digitalRead(dk_fans)); Serial.print(" shed_fan: ");Serial.print(digitalRead(shed_fan));
-	Serial.print(" comp_fans: ");Serial.print(digitalRead(comp_fans));Serial.print(" heater: ");Serial.print(digitalRead(heater));
-	Serial.print(" dk_lights: ");Serial.println(digitalRead(dk_lights));
+	Serial.print(" Low active relays (1=OFF & 0=ON): ");
+	Serial.print(" comp_fans: ");Serial.print(digitalRead(comp_fans));Serial.print(" dk_lights: ");Serial.println(digitalRead(dk_lights));Serial.print(" win_relay: "); Serial.println(digitalRead(win_relay));
+	Serial.print(" High active relays (0=OFF & 1=ON): ");
+	Serial.print("dk_fans: "); Serial.print(digitalRead(dk_fans));Serial.print(" shed_fan: ");Serial.print(digitalRead(shed_fan));Serial.print(" heater: ");Serial.println(digitalRead(heater));
+	
 
     Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
     
