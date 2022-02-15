@@ -78,7 +78,7 @@ void setup()
 
   dht1.begin();//DHT11 Temperature Sensors inside pelican case
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
-  
+
   bme.begin();// BME280 Temp Sensor
 }
 /*********************************************************************************************************************
@@ -103,8 +103,8 @@ void loop() {
   float shed_var = sensors.getTempF(shed_temp);
   //float relay_var = sensors.getTempF(relay_temp);
   //TODO: I still need to solder this wire into the board
-  
-    //BMP280 (outside sensor)
+
+  //BMP280 (outside sensor)
   float ws_temp_var = bme.readTemperature();
 
   //Variables
@@ -121,9 +121,9 @@ void loop() {
     //Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
-	
-	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
-	
-	print_previousMillis = currentMillis;
-}
+
+    Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+
+    print_previousMillis = currentMillis;
+  }
 }
