@@ -132,8 +132,6 @@ void setup()
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
 
   bme.begin();// BME280 Temp Sensor
-
-  /**************************************************************************************************
   
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
