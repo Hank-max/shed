@@ -119,6 +119,15 @@ void setup()
   bme.begin();// BME280 Temp Sensor
 
   /**************************************************************************************************
+  
+    pinMode(stepPin, OUTPUT);
+  pinMode(dirPin, OUTPUT);
+  pinMode(win_relay, OUTPUT);
+  pinMode(op_switch, INPUT);
+  pinMode(cl_switch, INPUT);
+  pinMode(motor_comm_pwr, OUTPUT);
+  
+    /**************************************************************************************************
     SETUP Data Logger Shield Setup
   *************************************************************************************************/
   Serial.print("Initializing SD card...");
