@@ -91,6 +91,7 @@ DeviceAddress cricket_temp = { 0x28, 0x8A, 0x95, 0xF7, 0x4B, 0x20, 0x1, 0xC6 };/
 DeviceAddress shed_temp = {0x28, 0xD6, 0xE4, 0x10, 0x4C, 0x20, 0x01, 0x80 };// This is the outside sensor in weather station
 DeviceAddress jango_temp = {0x28, 0xE7, 0xDF, 0xE2, 0x4B, 0x20, 0x1, 0xA2};// this is Jango
 //DeviceAddress relay_temp = { 0x28, 0x21, 0xB3, 0x95, 0xF0, 0x01, 0x3C, 0xAA };// Need to get the info for this sensor.
+//TODO; I need to physically solder this to the bread board with the rest of the one wires.
 
 /************************************************************************************************
   INT DHT11 temp and humidity sensor
@@ -111,6 +112,7 @@ DHT dht2(sensor2, DHTTYPE);
 #define op_switch 29 //open indicator switch for window
 #define cl_switch 25 //close indicator switch for window
 #define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
+//TODO; need to phiscally change this to pin 35
 int window_var; //Variable based on temperature for window
 int op_lastButtonState;   //Open Switch Debounce
 int cl_lastButtonState;   //Close Switch Debounce
