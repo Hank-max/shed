@@ -107,7 +107,7 @@ DHT dht2(sensor2, DHTTYPE);
 *********************************************************************************************************/
 #define dirPin 26 //Direction of the window motor CW or CCW
 #define stepPin 28 //Signal for window motor Microstep Driver
-#define win_relay 36 //12V relay to window motor Microstepper
+#define window_relay 31 //12V relay to window motor Microstepper
 #define op_switch 29 //open indicator switch for window
 #define cl_switch 25 //close indicator switch for window
 #define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
@@ -132,6 +132,7 @@ void setup()
   dht2.begin();//DHT11 Temperature Sensors outside pelican case
 
   bme.begin();// BME280 Temp Sensor
+
   
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
@@ -141,7 +142,7 @@ void setup()
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
-  pinMode(win_relay, OUTPUT);
+  pinMode(window_relay, OUTPUT);
   pinMode(op_switch, INPUT);
   pinMode(cl_switch, INPUT);
   pinMode(motor_comm_pwr, OUTPUT);
