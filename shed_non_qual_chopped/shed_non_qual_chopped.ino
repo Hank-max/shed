@@ -29,6 +29,14 @@ long fan_time = 5 * MIN;
 long print_time = 5 * SECONDS;
 long light_time = 5 * MIN;
 
+/***************************************************************************************************
+  INT TSL2591 Digital Light Sensor
+***************************************************************************************************/
+#include <Adafruit_Sensor.h>
+#include "Adafruit_TSL2591.h"
+Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
+unsigned long ir;
+
 /******************************************************************************************
   INT Temp, Humid, Baro BMP280 (outside sensor)
  *******************************************************************************************/
@@ -111,6 +119,30 @@ void loop() {
   float dk_avg = (cricket_var + jango_var) / 2;
   float shed_avg = (tempF2 + shed_var) / 2;
   float outside_avg = (ws_temp_var + outside_var) / 2;
+  
+    /**************************************************************************************************
+      Light Loop
+  **************************************************************************************************/
+  // You can change the gain on the fly, to adapt to brighter/dimmer light situations
+  tsl.setGain(TSL2591_GAIN_LOW);    // 1x gain (bright light)
+  // tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
+  //tsl.setGain(TSL2591_GAIN_HIGH);   // 428x gain
+
+  // Changing the integration time gives you a longer time over which to sense light
+  // longer timelines are slower, but are good in very low light situtations!
+  //tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);  // shortest integration time (bright light)
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
+  tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
+  // tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);  // longest integration time (dim light)
+
+  // More advanced data read example. Read 32 bits with top 16 bits IR, bottom 16 bits full spectrum
+  // That way you can do whatever math and comparisons you want!
+  uint32_t lum = tsl.getFullLuminosity();
+  uint16_t ir, full;
+  ir = lum >> 16;
+  full = lum & 0xFFFF;
 
   /***********************************************************************************************************
     Serial Print
@@ -122,7 +154,10 @@ if ((currentMillis - print_previousMillis) >= print_time) {
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
 	
-	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+	Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.print(" %");Serial.print(F("  Full: ")); Serial.print(full); Serial.println(F("  "));
+	
+	    Serial.print("Dog Kennel AVG:"); Serial.print(dk_avg); Serial.print("  Outside AVG:"); Serial.print(outside_avg);
+    Serial.print("  Shed AVG:"); Serial.println(shed_avg);
 	
 	print_previousMillis = currentMillis;
 }
