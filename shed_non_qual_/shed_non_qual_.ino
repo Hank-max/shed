@@ -28,6 +28,7 @@ long heater_time = 1 * MIN; //60 * MIN;
 long fan_time = 5 * MIN;
 long print_time = 5 * SECONDS;
 long light_time = 5 * MIN;
+long startup_time = 2 * SECONDS;//loop time for the items turned on @ start up.
 
 /**********************************************************************************************/
 /*INT Adafruit Data Shield and RTS
@@ -105,11 +106,12 @@ DHT dht2(sensor2, DHTTYPE);
 *********************************************************************************************************/
 #define dirPin 26 //Direction of the window motor CW or CCW
 #define stepPin 28 //Signal for window motor Microstep Driver
-#define win_relay 31 //12V relay to window motor Microstepper
+#define win_relay 36 //12V relay to window motor Microstepper
 #define op_switch 29 //open indicator switch for window
 #define cl_switch 25 //close indicator switch for window
 #define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
 //TODO; need to phiscally change this to pin 35
+#define stepsPerRevolution 1600*2
 int window_var; //Variable based on temperature for window
 int op_lastButtonState;   //Open Switch Debounce
 int cl_lastButtonState;   //Close Switch Debounce
@@ -254,6 +256,11 @@ void loop() {
   ir = lum >> 16;
   full = lum & 0xFFFF;
 
+      if (currentMillis <= startup_time){
+	        digitalWrite(dk_lights, LOW);// turning the light on @ start up.
+      Serial.print("  Startup Light IS ON  ");
+  }
+  
   if (currentMillis - light_previousMillis >= light_time) {
     if (full < 5000) {
       digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
@@ -323,6 +330,10 @@ void loop() {
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
+    if ((currentMillis <= startup_time) && (dk_avg < 45)){
+	        digitalWrite(heater, HIGH);// turning the heater on @ start up.
+      Serial.print("  Startup Heater IS ON  ");
+  }
   if (currentMillis - heater_previousMillis >= heater_time) {
     if ((outside_avg <= 0) && (dk_avg < 45)) {
       digitalWrite(heater, HIGH);
@@ -338,10 +349,14 @@ void loop() {
   /******************************************************************************************
     Loop for Window Motor
   *******************************************************************************************/
-  //NEED TO FIGURE OUT THE TEMPERATURES
   int  close_value = digitalRead(cl_switch);
   int open_value = digitalRead(op_switch);
   delay(100);
+  
+  if (currentMillis <= startup_time){
+	  digitalWrite(win_relay, HIGH);
+	  //turning off win motor pwr upon startup. I want relay off until enters the loops below.
+  }
 
   /*************************************
      Window going from CLOSE to OPEN
