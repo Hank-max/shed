@@ -22,12 +22,12 @@ unsigned long heater_previousMillis = 0;
 unsigned long print_previousMillis = 0;
 unsigned long light_previousMillis = 0;
 
-long win_time = 30 * SECONDS; //MIN;
+long win_time = 10 * MIN; //MIN;
 long compfan_time = 30 * SECONDS;
-long heater_time = 1 * MIN; //60 * MIN;
-long fan_time = 5 * MIN;
-long print_time = 5 * SECONDS;
-long light_time = 5 * MIN;
+long heater_time = 30 * MIN; //60 * MIN;
+long fan_time = 5* MIN;
+long print_time = 30* SECONDS; //5* MIN;
+long light_time = MIN;
 long startup_time = 2 * SECONDS;//loop time for the items turned on @ start up.
 
 /**********************************************************************************************/
@@ -88,7 +88,7 @@ DeviceAddress outside_temp = { 0x28, 0xF4, 0x45, 0x95, 0xF0, 0x01, 0x3C, 0xBF};/
 DeviceAddress cricket_temp = { 0x28, 0x8A, 0x95, 0xF7, 0x4B, 0x20, 0x1, 0xC6 };// this is cricket
 DeviceAddress shed_temp = {0x28, 0xD6, 0xE4, 0x10, 0x4C, 0x20, 0x01, 0x80 };// This is the outside sensor in weather station
 DeviceAddress jango_temp = {0x28, 0xE7, 0xDF, 0xE2, 0x4B, 0x20, 0x1, 0xA2};// this is Jango
-//DeviceAddress relay_temp = { 0x28, 0x21, 0xB3, 0x95, 0xF0, 0x01, 0x3C, 0xAA };// Need to get the info for this sensor.
+DeviceAddress relay_temp = { 0x28, 0xD2, 0xB9, 0x3E, 0x46, 0x20, 0x01, 0x2A };// Need to get the info for this sensor.
 //TODO; I need to physically solder this to the bread board with the rest of the one wires.
 
 /************************************************************************************************
@@ -110,7 +110,6 @@ DHT dht2(sensor2, DHTTYPE);
 #define op_switch 29 //open indicator switch for window
 #define cl_switch 25 //close indicator switch for window
 #define motor_comm_pwr 35 //the digitial pin giving COMM power to the switches
-//TODO; need to phiscally change this to pin 35
 #define stepsPerRevolution 1600*2
 int window_var; //Variable based on temperature for window
 int op_lastButtonState;   //Open Switch Debounce
@@ -125,8 +124,8 @@ unsigned long debounceDelay = 50;    // the debounce time
 *********************************************************************************************************************/
 void setup()
 {
- Serial.begin(9600);
- // Serial.begin(115200);
+  Serial.begin(9600);
+  // Serial.begin(115200);
 
   sensors.begin(); // this is for the DS18B20 (oneWire)
 
@@ -135,12 +134,15 @@ void setup()
 
   bme.begin();// BME280 Temp Sensor
 
-  
+
   pinMode(dk_fans, OUTPUT);
   pinMode(shed_fan, OUTPUT);
   pinMode(comp_fans, OUTPUT);
   pinMode(heater, OUTPUT);
   pinMode(dk_lights, OUTPUT);
+
+  digitalWrite(comp_fans, HIGH);
+  digitalWrite(win_relay, HIGH);
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
@@ -148,8 +150,8 @@ void setup()
   pinMode(op_switch, INPUT);
   pinMode(cl_switch, INPUT);
   pinMode(motor_comm_pwr, OUTPUT);
-  
-    /**************************************************************************************************
+
+  /**************************************************************************************************
     SETUP Data Logger Shield Setup and RTS
   *************************************************************************************************/
   Serial.print("Initializing SD card...");
@@ -175,7 +177,7 @@ void setup()
       break;  // leave the loop!
     }
   }
-  //dataFile = SD.open("datalog.csv", FILE_WRITE); // this line of code is not in the Adafruit example TODO: figure out what this line of code does. 
+  //dataFile = SD.open("datalog.csv", FILE_WRITE); // this line of code is not in the Adafruit example TODO: figure out what this line of code does.
   if (! dataFile) {
     Serial.println("error creating file, SD may be full");
   }
@@ -221,8 +223,7 @@ void loop() {
   float outside_var = sensors.getTempC(outside_temp);
   float outsideF_var = sensors.getTempF(outside_temp);
   float shed_var = sensors.getTempF(shed_temp);
-  //float relay_var = sensors.getTempF(relay_temp);
-  //TODO: I still need to solder this wire into the board
+  float relay_var = sensors.getTempF(relay_temp);
 
   //BMP280 (outside sensor)
   float ws_temp_var = bme.readTemperature();
@@ -256,11 +257,6 @@ void loop() {
   ir = lum >> 16;
   full = lum & 0xFFFF;
 
-      if (currentMillis <= startup_time){
-	        digitalWrite(dk_lights, LOW);// turning the light on @ start up.
-      Serial.print("  Startup Light IS ON  ");
-  }
-  
   if (currentMillis - light_previousMillis >= light_time) {
     if (full < 5000) {
       digitalWrite(dk_lights, LOW);//the relay requires a low signal to trigger the relay
@@ -282,11 +278,11 @@ void loop() {
         window_var = 2;
         Serial.print("   DK FAN IS ON  ");
       }
-    }
-    else if (dk_avg <= 60) {
-      digitalWrite(dk_fans, LOW);
-      window_var = 1;
-      Serial.print("   DK FAN IS OFF  ");
+      else if (dk_avg <= 60) {
+        digitalWrite(dk_fans, LOW);
+        window_var = 1;
+        Serial.print("   DK FAN IS OFF  ");
+      }
     }
     else if (outside_avg <= 21) {
       if (dk_avg >= 65) {
@@ -330,9 +326,9 @@ void loop() {
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
-    if ((currentMillis <= startup_time) && (dk_avg < 45)){
-	        digitalWrite(heater, HIGH);// turning the heater on @ start up.
-      Serial.print("  Startup Heater IS ON  ");
+  if ((currentMillis <= startup_time) && (dk_avg < 45)) {
+    digitalWrite(heater, HIGH);// turning the heater on @ start up.
+    Serial.print("  Startup Heater IS ON  ");
   }
   if (currentMillis - heater_previousMillis >= heater_time) {
     if ((outside_avg <= 0) && (dk_avg < 45)) {
@@ -352,11 +348,6 @@ void loop() {
   int  close_value = digitalRead(cl_switch);
   int open_value = digitalRead(op_switch);
   delay(100);
-  
-  if (currentMillis <= startup_time){
-	  digitalWrite(win_relay, HIGH);
-	  //turning off win motor pwr upon startup. I want relay off until enters the loops below.
-  }
 
   /*************************************
      Window going from CLOSE to OPEN
@@ -422,17 +413,17 @@ void loop() {
     Serial.print(now.year(), DEC); Serial.print('/'); Serial.print(now.month(), DEC); Serial.print('/');
     Serial.print(now.day(), DEC); Serial.print(") "); Serial.print(now.hour(), DEC); Serial.print(':');
     Serial.print(now.minute(), DEC); Serial.print(':'); Serial.println(now.second(), DEC);
-	Serial.print(" Low active relays (1=OFF & 0=ON): ");
-	Serial.print(" comp_fans=");Serial.print(digitalRead(comp_fans));Serial.print("  dk_lights=");Serial.print(digitalRead(dk_lights));Serial.print("  win_relay="); Serial.println(digitalRead(win_relay));
-	Serial.print(" High active relays (0=OFF & 1=ON): ");
-	Serial.print("dk_fans="); Serial.print(digitalRead(dk_fans));Serial.print("  shed_fan:");Serial.print(digitalRead(shed_fan));Serial.print(" heater0");Serial.println(digitalRead(heater));
-	
+    Serial.print(" Low active relays (1=OFF & 0=ON): ");
+    Serial.print(" comp_fans="); Serial.print(digitalRead(comp_fans)); Serial.print("  dk_lights="); Serial.print(digitalRead(dk_lights)); Serial.print("  win_relay="); Serial.println(digitalRead(win_relay));
+    Serial.print(" High active relays (0=OFF & 1=ON): ");
+    Serial.print("dk_fans="); Serial.print(digitalRead(dk_fans)); Serial.print("  shed_fan="); Serial.print(digitalRead(shed_fan)); Serial.print(" heater="); Serial.println(digitalRead(heater));
 
-    Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  "));Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
-    
-	Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
+
+    Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  ")); Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
+
+    Serial.print("Shed Temp: "); Serial.print(shed_var); Serial.print("   Comp Temp: "); Serial.print(tempF1);
     Serial.print("  Cricket Temp: "); Serial.print(cricket_var); Serial.print("  Jango Temp: "); Serial.print(jango_var);
-    //Serial.print("  Relay Temp:"); Serial.print(relay_var);
+    Serial.print("  Relay Temp:"); Serial.print(relay_var);
     Serial.print("  Outside temp:"); Serial.print(outside_var);
     Serial.print("(*C): "); Serial.print(outsideF_var); Serial.println("(*F): ");
 
