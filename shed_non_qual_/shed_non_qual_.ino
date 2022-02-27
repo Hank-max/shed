@@ -30,7 +30,7 @@ long print_time = 5 * SECONDS;
 long light_time = 5 * MIN;
 
 /**********************************************************************************************/
-/*INT Adafruit Data Shield
+/*INT Adafruit Data Shield and RTS
  *********************************************************************************************
    SD card attached to SPI bus as follows:
  ** Mega:  MOSI - pin 51, MISO - pin 50, CLK - pin 52, CS - pin 4 (CS pin can be changed)
@@ -40,23 +40,20 @@ const int chipSelect = 10; // this is the CS for the data logger
 #include <Wire.h> //This is the library that helps the Arduino with i2c
 #include "SD.h" // This is the library for talking to the card
 File dataFile;
+#include "RTClib.h" //this is the library the Arduino uses to chat with the real time clock
+RTC_PCF8523 rtc; // I found a different variable (RTC_DS1307) If the time is incorrect than i want to try this
 
 //******************* I need to read up on this and see if this can go in the setup. I dont want the system to stop if there is something wrong with the data logger.***********
 //#define LOG_INTEVAL 1000 //This is how many milli seconds between the sensor readings (i woul like to figure out these features, but currently not using.
 //#define ECHO_TO_SERIAL 1 //this is if i want to echo to the serial monitor (1 is on and 0 is off)
 void error(char *str)// the error function is uded if there is something bad happening (i.e. no micro SD card is installed. It will sit in the "while(1) loop forever until the issue is corrected
 {
-  Serial.print("error: ");
+  Serial.print("error: Prob No Micro SD Card Installed");
   Serial.println(str);
 
   //while (1);
 }
 
-/*********************************************************************************************
-   INT Time Stamp
- * ******************************************************************************************/
-#include "RTClib.h" //this is the library the Arduino uses to chat with the real time clock
-RTC_PCF8523 rtc; // I found a different variable (RTC_DS1307) If the time is incorrect than i want to try this
 
 /***************************************************************************************************
   INT TSL2591 Digital Light Sensor
@@ -151,7 +148,7 @@ void setup()
   pinMode(motor_comm_pwr, OUTPUT);
   
     /**************************************************************************************************
-    SETUP Data Logger Shield Setup
+    SETUP Data Logger Shield Setup and RTS
   *************************************************************************************************/
   Serial.print("Initializing SD card...");
   // make sure that the default chip select pin is set to
@@ -176,18 +173,15 @@ void setup()
       break;  // leave the loop!
     }
   }
-  dataFile = SD.open("datalog.csv", FILE_WRITE);
+  //dataFile = SD.open("datalog.csv", FILE_WRITE); // this line of code is not in the Adafruit example TODO: figure out what this line of code does. 
   if (! dataFile) {
     Serial.println("error creating file, SD may be full");
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
 
-  /**************************************************************************************************
-    SETUP Data Logger Shield Setup
-  *************************************************************************************************/
   Wire.begin(); // i added this, so lets see if it works.
-  //    if (! rtc.begin()) {
+  //    if (!rtc.begin()) {
   //      Serial.println("Couldn't find RTC");
   //      while (1);
   //    }
