@@ -25,8 +25,8 @@ unsigned long light_previousMillis = 0;
 long win_time = 10 * MIN;//this time needs to be >fan_time because of the window var
 long compfan_time = 30 * SECONDS;
 long heater_time = 30 * MIN; //60 * MIN;
-long fan_time = 5 * MIN;
-long print_time = 30 * SECONDS; //5* MIN;
+long fan_time = 5 * MIN;//this is actually for the whole temp loop
+long print_time = MIN;
 long light_time = MIN;
 long startup_time = 2 * SECONDS;//loop time for the items turned on @ start up.
 
@@ -89,7 +89,6 @@ DeviceAddress cricket_temp = { 0x28, 0x8A, 0x95, 0xF7, 0x4B, 0x20, 0x1, 0xC6 };/
 DeviceAddress shed_temp = {0x28, 0xD6, 0xE4, 0x10, 0x4C, 0x20, 0x01, 0x80 };// This is the outside sensor in weather station
 DeviceAddress jango_temp = {0x28, 0xE7, 0xDF, 0xE2, 0x4B, 0x20, 0x1, 0xA2};// this is Jango
 DeviceAddress relay_temp = { 0x28, 0xD2, 0xB9, 0x3E, 0x46, 0x20, 0x01, 0x2A };// Need to get the info for this sensor.
-//TODO; I need to physically solder this to the bread board with the rest of the one wires.
 
 /************************************************************************************************
   INT DHT11 temp and humidity sensor
@@ -141,8 +140,8 @@ void setup()
   pinMode(heater, OUTPUT);
   pinMode(dk_lights, OUTPUT);
 
-  digitalWrite(comp_fans, HIGH);
-  digitalWrite(win_relay, HIGH);
+  digitalWrite(comp_fans, HIGH);//turning the relay off for startup
+  digitalWrite(win_relay, HIGH);//turning the relay off for startup
 
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
@@ -272,29 +271,40 @@ void loop() {
      Fans Loop and Temperature Variables
    ****************************************************************************************************/
   if ((currentMillis - fan_previousMillis >= fan_time)) {
-    if (outside_avg > 21){
+    if (outside_avg > 16){
       if (dk_avg > 60) {
         digitalWrite(dk_fans, HIGH);
         window_var = 2;
         Serial.print("   DK FAN IS ON  ");
       }
-      else if (dk_avg <= 60) {
+      else if ((dk_avg <= 60) && (dk_avg > 50)) {
         digitalWrite(dk_fans, LOW);
-        window_var = 1;
+        window_var = 2;
         Serial.print("   DK FAN IS OFF  ");
       }
+	  else {
+		//If the DK is colder than 50 and it is nice out
+		digitalWrite(dk_fans, LOW);
+        window_var = 1;
+        Serial.print("   DK FAN IS OFF  ");
+	  }
   }
-  else if (outside_avg <= 21) {
-    if (dk_avg >= 65) {
+  else if (outside_avg <= 16) {
+    if (dk_avg >= 70) {
       digitalWrite(dk_fans, HIGH);
       window_var = 1;
       Serial.print("  DK FAN IS ON  ");
     }
-    else if (dk_avg < 65) {
-      digitalWrite(dk_fans, LOW);
+    else if ((dk_avg < 70) && (dk_avg > 62)) {
+      digitalWrite(dk_fans, HIGH);
+      window_var = 2;
+      Serial.print("  DK FAN IS ON  ");
+    }
+	else {
+	  digitalWrite(dk_fans, LOW);
       window_var = 2;
       Serial.print("  DK FAN IS OFF  ");
-    }
+	}
   }
   //Shed Fan Loop
   if (shed_avg >= 70) {
