@@ -427,7 +427,7 @@ void loop() {
     Serial.print(" comp_fans="); Serial.print(digitalRead(comp_fans)); Serial.print("  dk_lights="); Serial.print(digitalRead(dk_lights)); Serial.print("  win_relay="); Serial.println(digitalRead(win_relay));
     Serial.print(" High active relays (0=OFF & 1=ON): ");
     Serial.print("dk_fans="); Serial.print(digitalRead(dk_fans)); Serial.print("  shed_fan="); Serial.print(digitalRead(shed_fan)); Serial.print(" heater="); Serial.println(digitalRead(heater));
-Serial.print("Window Var= "); Serial.print(digitalRead(window_var)); Serial.print("  open status= "); Serial.print(digitalRead(open_value)); Serial.print(" close status= "); Serial.println(digitalRead(close_value));
+Serial.print("Window Var= "); Serial.print(window_var); Serial.print("  open status= "); Serial.print(open_value); Serial.print(" close status= "); Serial.println(close_value);
 
     Serial.print(F("Full: ")); Serial.print(full); Serial.print(F("  ")); Serial.print(" Humidity = "); Serial.print(bme.readHumidity()); Serial.println(" %");
 
