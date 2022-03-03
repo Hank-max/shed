@@ -26,7 +26,7 @@ long win_time = 10 * MIN;//this time needs to be >fan_time because of the window
 long compfan_time = 30 * SECONDS;
 long heater_time = 30 * MIN; //60 * MIN;
 long fan_time = 5 * MIN;//this is actually for the whole temp loop
-long print_time = MIN;
+long print_time = 3 * MIN;
 long light_time = MIN;
 long startup_time = 2 * SECONDS;//loop time for the items turned on @ start up.
 
@@ -337,7 +337,7 @@ void loop() {
   /*******************************************************************************************************
       IR Heater Loop
   ********************************************************************************************************/
-  if ((currentMillis <= startup_time) && (dk_avg < 45)) {
+  if ((currentMillis <= startup_time) && (dk_avg < 47)) {
     digitalWrite(heater, HIGH);// turning the heater on @ start up.
     Serial.print("  Startup Heater IS ON  ");
   }
